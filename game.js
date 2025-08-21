@@ -40,15 +40,26 @@ class MisplacedGiftsGame {
         const welcomeScreen = document.getElementById('welcome-screen');
         const startBtn = document.getElementById('start-game-btn');
         
+        console.log('设置欢迎界面:', {welcomeScreen, startBtn});
+        
         if (welcomeScreen && startBtn) {
             // 显示欢迎界面
             welcomeScreen.classList.remove('hidden');
             
             // 绑定开始按钮事件
             startBtn.onclick = () => {
+                console.log('开始游戏按钮被点击');
                 this.startGame();
             };
+            
+            // 添加额外的事件监听器以确保事件绑定成功
+            startBtn.addEventListener('click', (e) => {
+                console.log('addEventListener: 开始游戏按钮被点击');
+            });
+            
+            console.log('欢迎界面设置完成');
         } else {
+            console.log('未找到欢迎界面元素，直接开始游戏');
             // 如果没有欢迎界面，直接开始游戏
             this.startGame();
         }
@@ -56,10 +67,12 @@ class MisplacedGiftsGame {
     
     // 开始游戏
     startGame() {
+        console.log('startGame 函数被调用');
         const welcomeScreen = document.getElementById('welcome-screen');
         
         // 隐藏欢迎界面
         if (welcomeScreen) {
+            console.log('隐藏欢迎界面');
             welcomeScreen.classList.add('hidden');
             // 延迟后完全移除欢迎界面
             setTimeout(() => {
@@ -69,8 +82,10 @@ class MisplacedGiftsGame {
         
         // 标记游戏已开始
         this.gameStarted = true;
+        console.log('游戏已开始:', this.gameStarted);
         
         // 显示第一个场景并播放音频
+        console.log('准备显示场景:', this.currentScene);
         this.showScene(this.currentScene);
         
         // 显示浮动帮助按钮
@@ -836,5 +851,14 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// 初始化游戏
-const game = new MisplacedGiftsGame();
+// 初始化游戏 - 等待DOM加载完成
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOMContentLoaded - 初始化游戏');
+        window.game = new MisplacedGiftsGame();
+    });
+} else {
+    // DOM已经加载完成
+    console.log('DOM已就绪 - 初始化游戏');
+    window.game = new MisplacedGiftsGame();
+}
