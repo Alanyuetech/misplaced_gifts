@@ -1,6 +1,7 @@
 // 游戏核心逻辑
 class MisplacedGiftsGame {
     constructor() {
+        this.version = '1.0.20250814'; // 版本号
         this.currentScene = 'start';
         this.gameHistory = [];
         this.settings = {
@@ -24,6 +25,7 @@ class MisplacedGiftsGame {
     }
 
     init() {
+        console.log(`《错位的礼物》游戏初始化 v${this.version}`);
         this.loadSettings();
         this.loadSaves();
         this.applyTheme(this.settings.theme);
@@ -597,18 +599,33 @@ class MisplacedGiftsGame {
 
     // 加载设置
     loadSettings() {
-        const savedSettings = localStorage.getItem('misplacedGifts_settings');
-        if (savedSettings) {
-            this.settings = JSON.parse(savedSettings);
+        try {
+            const savedSettings = localStorage.getItem('misplacedGifts_settings');
+            if (savedSettings) {
+                const parsed = JSON.parse(savedSettings);
+                // 合并设置，保留新的默认值
+                this.settings = { ...this.settings, ...parsed };
+            }
+        } catch (error) {
+            console.error('加载设置失败，使用默认设置:', error);
+            // 清除损坏的数据
+            localStorage.removeItem('misplacedGifts_settings');
         }
     }
 
     // 加载存档
     loadSaves() {
-        const savedSlots = localStorage.getItem('misplacedGifts_saves');
-        if (savedSlots) {
-            this.saveSlots = JSON.parse(savedSlots);
-        } else {
+        try {
+            const savedSlots = localStorage.getItem('misplacedGifts_saves');
+            if (savedSlots) {
+                this.saveSlots = JSON.parse(savedSlots);
+            } else {
+                this.saveSlots = new Array(5).fill(null);
+            }
+        } catch (error) {
+            console.error('加载存档失败，重置存档:', error);
+            // 清除损坏的数据
+            localStorage.removeItem('misplacedGifts_saves');
             this.saveSlots = new Array(5).fill(null);
         }
     }

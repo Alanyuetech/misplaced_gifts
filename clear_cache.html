@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>清理游戏缓存</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .warning {
+            color: orange;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        .danger-button {
+            background: #e53e3e;
+        }
+        .danger-button:hover {
+            background: #c53030;
+        }
+        .info {
+            background: #e6f7ff;
+            border-left: 4px solid #1890ff;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>《错位的礼物》缓存清理工具</h1>
+        
+        <div class="info">
+            <strong>如果游戏无法正常启动，请使用此工具清理缓存</strong>
+            <p>症状：点击"开始游戏"按钮无反应，或者游戏加载异常</p>
+        </div>
+        
+        <div class="status">
+            <h3>当前状态检查：</h3>
+            <div id="status-info"></div>
+        </div>
+        
+        <button onclick="clearCache()">清理浏览器缓存（推荐）</button>
+        <button onclick="clearLocalStorage()">清理游戏存档和设置</button>
+        <button onclick="clearAll()" class="danger-button">完全重置（清理所有数据）</button>
+        <button onclick="testGame()">测试游戏</button>
+        <button onclick="window.location.href='index.html'">返回游戏</button>
+        
+        <div class="log" id="log"></div>
+    </div>
+    
+    <script>
+        const log = document.getElementById('log');
+        const statusInfo = document.getElementById('status-info');
+        
+        function addLog(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'success' ? 'green' : type === 'error' ? 'red' : 'black';
+            log.innerHTML += `<div style="color: ${color}">[${time}] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function checkStatus() {
+            statusInfo.innerHTML = '';
+            
+            // 检查localStorage
+            const settings = localStorage.getItem('misplacedGifts_settings');
+            const saves = localStorage.getItem('misplacedGifts_saves');
+            
+            if (settings) {
+                try {
+                    JSON.parse(settings);
+                    statusInfo.innerHTML += '<div class="success">✓ 游戏设置数据正常</div>';
+                } catch (e) {
+                    statusInfo.innerHTML += '<div class="error">✗ 游戏设置数据损坏</div>';
+                }
+            } else {
+                statusInfo.innerHTML += '<div>- 无游戏设置数据</div>';
+            }
+            
+            if (saves) {
+                try {
+                    JSON.parse(saves);
+                    statusInfo.innerHTML += '<div class="success">✓ 游戏存档数据正常</div>';
+                } catch (e) {
+                    statusInfo.innerHTML += '<div class="error">✗ 游戏存档数据损坏</div>';
+                }
+            } else {
+                statusInfo.innerHTML += '<div>- 无游戏存档数据</div>';
+            }
+            
+            // 检查缓存
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    if (names.length > 0) {
+                        statusInfo.innerHTML += `<div class="warning">⚠ 发现 ${names.length} 个缓存</div>`;
+                    } else {
+                        statusInfo.innerHTML += '<div class="success">✓ 无缓存数据</div>';
+                    }
+                });
+            }
+        }
+        
+        function clearCache() {
+            addLog('开始清理浏览器缓存...');
+            
+            // 清理Service Worker缓存
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    return Promise.all(
+                        names.map(name => {
+                            addLog(`清理缓存: ${name}`);
+                            return caches.delete(name);
+                        })
+                    );
+                }).then(() => {
+                    addLog('缓存清理完成', 'success');
+                });
+            }
+            
+            // 强制重新加载
+            addLog('准备强制刷新页面...');
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 1000);
+        }
+        
+        function clearLocalStorage() {
+            addLog('清理游戏数据...');
+            
+            const items = ['misplacedGifts_settings', 'misplacedGifts_saves'];
+            items.forEach(item => {
+                if (localStorage.getItem(item)) {
+                    localStorage.removeItem(item);
+                    addLog(`已删除: ${item}`, 'success');
+                }
+            });
+            
+            addLog('游戏数据清理完成', 'success');
+            checkStatus();
+        }
+        
+        function clearAll() {
+            if (!confirm('确定要清理所有数据吗？这将删除所有游戏进度和设置！')) {
+                return;
+            }
+            
+            addLog('执行完全重置...');
+            
+            // 清理localStorage
+            clearLocalStorage();
+            
+            // 清理所有缓存
+            clearCache();
+        }
+        
+        function testGame() {
+            addLog('测试游戏加载...');
+            
+            // 创建一个隐藏的iframe来测试
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = 'index.html';
+            
+            iframe.onload = () => {
+                try {
+                    const iframeWindow = iframe.contentWindow;
+                    if (iframeWindow.game) {
+                        addLog('游戏加载成功！', 'success');
+                        addLog(`游戏版本: ${iframeWindow.game.version || '未知'}`);
+                    } else {
+                        addLog('游戏对象未创建', 'error');
+                    }
+                } catch (e) {
+                    addLog(`测试失败: ${e.message}`, 'error');
+                }
+                document.body.removeChild(iframe);
+            };
+            
+            iframe.onerror = () => {
+                addLog('页面加载失败', 'error');
+                document.body.removeChild(iframe);
+            };
+            
+            document.body.appendChild(iframe);
+        }
+        
+        // 页面加载时检查状态
+        window.onload = () => {
+            checkStatus();
+            addLog('缓存清理工具已就绪');
+        };
+    </script>
+</body>
+</html>
